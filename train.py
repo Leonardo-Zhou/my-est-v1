@@ -195,7 +195,7 @@ class CycleGANTrainer:
         
         # 高光去除
         input_with_mask = torch.cat([main_frame, highlight_masks], dim=1)
-        refined_image = self.highlight_removal_net(input_with_mask, highlight_masks)
+        refined_image = self.highlight_removal_net(input_with_mask)
         
         # 计算损失
         # 重构损失

@@ -255,12 +255,11 @@ class HighlightRemovalNet(nn.Module):
             nn.Tanh()
         )
         
-    def forward(self, x, mask):
-        # 连接图像和mask
-        input_with_mask = torch.cat([x, mask], dim=1)
+    def forward(self, x_with_mask):
+        # x_with_mask已经包含了图像和mask（4通道）
         
         # 编码
-        features = input_with_mask
+        features = x_with_mask
         encoder_outputs = []
         for encoder_layer in self.encoder:
             features = encoder_layer(features)

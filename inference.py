@@ -115,7 +115,7 @@ class ImageDecomposer:
             
             # 高光去除（可选）
             input_with_mask = torch.cat([image_tensor, mask_tensor], dim=1)
-            refined_no_highlight = self.highlight_removal_net(input_with_mask, mask_tensor)
+            refined_no_highlight = self.highlight_removal_net(input_with_mask)
         
         # 转换回numpy
         intrinsic_np = intrinsic[0].cpu().numpy().transpose(1, 2, 0)

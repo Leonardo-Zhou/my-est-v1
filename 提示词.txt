@@ -4,3 +4,41 @@
     步骤3：精炼：输入到 CycleGAN 风格的网络中，进行域转移（从有高光到无高光），使用合成内窥镜数据（通过渲染器生成）训练，无监督损失如循环一致性和结构相似性（SSIM）。
     步骤4：后处理：迭代优化 S（通过光顺滑假设），确保 I ≈ I' * S + R。
 最终要求，将图像分解后，需要能实现I'在多帧之间有着连续性。或者说，我多帧之间光照分布不同，反射也不同。所以需要不同帧之间的I'有着本身的相似性，比如颜色什么的，需要反应本身自己的颜色，而不是受光照影响的。注意，我输入的图像是(1024, 1280, 3)的形状。你可以将其进行缩放以减小网络大小。
+
+
+很好。现在训练的时候报错：
+Found 2197 images in /mnt/data/publicData/MICCAI19_SCARED/train/dataset7/keyframe4/image_02/data/
+Epoch 1/100:   0%|                                                                                                                                                                           | 0/549 [00:06<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 410, in <module>
+    main()
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 406, in main
+    trainer.train(train_loader, config['num_epochs'])
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 295, in train
+    losses = self.train_step(batch, global_step)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 198, in train_step
+    refined_image = self.highlight_removal_net(input_with_mask, highlight_masks)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/cyclegan_network.py", line 266, in forward
+    features = encoder_layer(features)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/container.py", line 217, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 463, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 459, in _conv_forward
+    return F.conv2d(input, weight, bias, self.stride,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Given groups=1, weight of size [64, 4, 7, 7], expected input[4, 5, 512, 640] to have 4 channels, but got 5 channels instead
