@@ -23,15 +23,18 @@ class ImageDecomposer:
     def __init__(self, 
                  checkpoint_path: Optional[str] = None,
                  device: str = 'cuda',
-                 use_temporal_consistency: bool = True):
+                 use_temporal_consistency: bool = True,
+                 scale_factor: float = 0.125):
         """
         Args:
             checkpoint_path: 模型检查点路径
             device: 设备 ('cuda' or 'cpu')
             use_temporal_consistency: 是否使用时间一致性
+            scale_factor: 训练时的缩放因子
         """
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
         self.use_temporal_consistency = use_temporal_consistency
+        self.scale_factor = scale_factor
         
         # 初始化各个组件
         self.highlight_detector = AdaptiveHighlightDetector()
@@ -94,20 +97,32 @@ class ImageDecomposer:
         H, W = image.shape[:2]
         
         # 步骤1: 高光检测
-        highlight_mask, scaled_image = self.highlight_detector.process(
+        highlight_mask_original, scaled_image = self.highlight_detector.process(
             (image * 255).astype(np.uint8) if image.max() <= 1 else image,
-            scale_factor=1.0
+            scale_factor=self.scale_factor
         )
+
+        # 缩放图像以匹配训练尺寸
+        if self.scale_factor != 1.0:
+            new_h = int(H * self.scale_factor)
+            new_w = int(W * self.scale_factor)
+            image_scaled = cv2.resize(image, (new_w, new_h))
+            # 创建缩放后的highlight_mask用于矩阵分解
+            highlight_mask_scaled = cv2.resize(highlight_mask_original, (new_w, new_h))
+            highlight_mask = highlight_mask_scaled
+        else:
+            image_scaled = image.copy()
+            highlight_mask = highlight_mask_original
         
         # 步骤2: 初始矩阵分解
         initial_intrinsic_shading, initial_reflection = self.matrix_decomposer.decompose(
-            image, highlight_mask
+            image_scaled, highlight_mask
         )
         
         # 步骤3: 神经网络精炼
         with torch.no_grad():
             # 准备输入
-            image_tensor = torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).float().to(self.device)
+            image_tensor = torch.from_numpy(image_scaled).permute(2, 0, 1).unsqueeze(0).float().to(self.device)
             mask_tensor = torch.from_numpy(highlight_mask).unsqueeze(0).unsqueeze(0).float().to(self.device)
             
             # 内在分解
@@ -117,10 +132,18 @@ class ImageDecomposer:
             input_with_mask = torch.cat([image_tensor, mask_tensor], dim=1)
             refined_no_highlight = self.highlight_removal_net(input_with_mask)
         
-        # 转换回numpy
+        # 转换回numpy并调整回原尺寸
         intrinsic_np = intrinsic[0].cpu().numpy().transpose(1, 2, 0)
         shading_np = shading[0].cpu().numpy().transpose(1, 2, 0)
         reflection_np = reflection[0].cpu().numpy().transpose(1, 2, 0)
+        refined_np = refined_no_highlight[0].cpu().numpy().transpose(1, 2, 0)
+        
+        # 调整回原尺寸
+        if self.scale_factor != 1.0:
+            intrinsic_np = cv2.resize(intrinsic_np, (W, H))
+            shading_np = cv2.resize(shading_np, (W, H))
+            reflection_np = cv2.resize(reflection_np, (W, H))
+            refined_np = cv2.resize(refined_np, (W, H))
         
         # 步骤4: 后处理优化
         refined_results = self.postprocessor.refine(
@@ -128,11 +151,11 @@ class ImageDecomposer:
             intrinsic_np,
             shading_np,
             reflection_np,
-            highlight_mask
+            highlight_mask_original
         )
-        
+
         # 添加额外信息
-        refined_results['highlight_mask'] = highlight_mask
+        refined_results['highlight_mask'] = highlight_mask_original
         refined_results['refined_image'] = refined_no_highlight[0].cpu().numpy().transpose(1, 2, 0)
         refined_results['original'] = image
         

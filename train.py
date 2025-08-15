@@ -277,6 +277,9 @@ class CycleGANTrainer:
         total_loss.backward()
         self.optimizer_G.step()
         
+        # 清理显存缓存
+        torch.cuda.empty_cache()
+            
         # 记录损失
         loss_dict = {k: v.item() if torch.is_tensor(v) else v for k, v in losses.items()}
         loss_dict['total'] = total_loss.item()

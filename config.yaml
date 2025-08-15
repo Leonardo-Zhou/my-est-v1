@@ -2,8 +2,8 @@
 data_dir: /mnt/data/publicData/MICCAI19_SCARED/train/dataset7/keyframe4/image_02/data/
 batch_size: 4
 num_epochs: 100
-scale_factor: 0.25
-max_size: [256, 320]  # [H, W] 最大图像尺寸限制
+scale_factor: 0.125  # 进一步减小到1/8
+max_size: [128, 160]  # [H, W] 严格控制输入尺寸
 sequence_length: 3
 
 # 学习率

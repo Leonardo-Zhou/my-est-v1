@@ -185,12 +185,18 @@ class ShadingRefinement:
         if shading.ndim == 3:
             shading = shading[:, :, 0]
         
+        # 确保数据类型为float32
+        shading = shading.astype(np.float32)
+        guide_image = guide_image.astype(np.float32)
+        
         # 引导滤波参数
         radius = 8
         eps = 0.01
         
         # 应用引导滤波
         guide_gray = cv2.cvtColor(guide_image, cv2.COLOR_RGB2GRAY) if guide_image.ndim == 3 else guide_image
+        guide_gray = guide_gray.astype(np.float32)
+        
         refined = cv2.ximgproc.guidedFilter(guide_gray, shading, radius, eps)
         
         # 双边滤波进一步平滑
