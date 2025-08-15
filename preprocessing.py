@@ -11,9 +11,9 @@ class HighlightDetector:
     """检测内窥镜图像中的高光区域"""
     
     def __init__(self, 
-                 hsv_threshold: float = 0.95,
-                 ycbcr_threshold: float = 0.9,
-                 min_area: int = 50):
+                 hsv_threshold: float = 0.85,  # 降低阈值以检测更多高光
+                 ycbcr_threshold: float = 0.8,  # 降低阈值
+                 min_area: int = 20):  # 减小最小面积要求
         self.hsv_threshold = hsv_threshold
         self.ycbcr_threshold = ycbcr_threshold
         self.min_area = min_area
@@ -31,10 +31,10 @@ class HighlightDetector:
         
         # 同时考虑低饱和度（高光通常饱和度低）
         s_channel = hsv[:, :, 1] / 255.0
-        low_saturation = s_channel < 0.2
+        low_saturation = s_channel < 0.3  # 放宽饱和度条件
         
-        # 组合条件
-        highlight_mask = highlight_mask & low_saturation
+        # 组合条件 - 使用OR而不是AND以检测更多高光
+        highlight_mask = highlight_mask | (v_channel > 0.9) & low_saturation
         
         return highlight_mask.astype(np.float32)
     
@@ -54,11 +54,11 @@ class HighlightDetector:
         cr = ycbcr[:, :, 2].astype(np.float32) - 128
         chroma_magnitude = np.sqrt(cb**2 + cr**2)
         
-        # 高光区域色度较低
-        low_chroma = chroma_magnitude < 20
+        # 高光区域色度较低 - 放宽条件
+        low_chroma = chroma_magnitude < 30  # 从20增加到30
         
-        # 组合条件
-        highlight_mask = highlight_mask & low_chroma
+        # 组合条件 - 使用OR以检测更多高光
+        highlight_mask = highlight_mask | (y_channel > 0.85) & low_chroma
         
         return highlight_mask.astype(np.float32)
     
@@ -139,13 +139,13 @@ class HighlightDetector:
 class AdaptiveHighlightDetector(HighlightDetector):
     """自适应高光检测器，根据图像统计动态调整阈值"""
     
-    def __init__(self, base_threshold: float = 0.9, min_area: int = 50):
+    def __init__(self, base_threshold: float = 0.75, min_area: int = 10):  # 降低基础阈值
         super().__init__(hsv_threshold=base_threshold, 
                         ycbcr_threshold=base_threshold, 
                         min_area=min_area)
         self.base_threshold = base_threshold
         
-    def compute_adaptive_threshold(self, channel: np.ndarray, percentile: float = 99) -> float:
+    def compute_adaptive_threshold(self, channel: np.ndarray, percentile: float = 95) -> float:  # 降低百分位数
         """基于图像统计计算自适应阈值"""
         # 计算亮度分布
         p_high = np.percentile(channel, percentile)
@@ -153,11 +153,11 @@ class AdaptiveHighlightDetector(HighlightDetector):
         
         # 动态调整阈值
         if p_high - p_median > 0.3:  # 高对比度图像
-            threshold = max(self.base_threshold, p_high * 0.95)
+            threshold = max(self.base_threshold * 0.85, p_high * 0.9)  # 更激进的阈值
         else:  # 低对比度图像
-            threshold = max(self.base_threshold * 0.9, p_high * 0.9)
+            threshold = max(self.base_threshold * 0.8, p_high * 0.85)
             
-        return min(threshold, 0.99)  # 确保阈值不超过0.99
+        return min(threshold, 0.95)  # 确保阈值不超过0.95
     
     def detect_hsv(self, image: np.ndarray) -> np.ndarray:
         """自适应HSV高光检测"""
@@ -170,8 +170,9 @@ class AdaptiveHighlightDetector(HighlightDetector):
         # 检测高光
         highlight_mask = v_channel > adaptive_threshold
         s_channel = hsv[:, :, 1] / 255.0
-        low_saturation = s_channel < 0.25
+        low_saturation = s_channel < 0.35  # 放宽饱和度条件
         
-        highlight_mask = highlight_mask & low_saturation
+        # 使用更宽松的条件
+        highlight_mask = highlight_mask | ((v_channel > adaptive_threshold * 0.95) & low_saturation)
         
         return highlight_mask.astype(np.float32)
