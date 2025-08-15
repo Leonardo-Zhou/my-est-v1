@@ -242,12 +242,12 @@ class CycleGANTrainer:
         # 训练判别器
         self.optimizer_D.zero_grad()
         
-        # 真实样本
-        real_labels = torch.ones(batch_size, 1, H // 16, W // 16).to(self.device)
-        fake_labels = torch.zeros(batch_size, 1, H // 16, W // 16).to(self.device)
-        
         # 判别内在颜色
         real_score = self.discriminator_intrinsic(intrinsic.detach())
+        # 根据实际输出尺寸创建标签
+        real_labels = torch.ones_like(real_score).to(self.device)
+        fake_labels = torch.zeros_like(real_score).to(self.device)
+        
         d_loss_real = self.gan_loss(real_score, real_labels)
         
         # 这里应该有真实的无高光图像，暂时用refined_image

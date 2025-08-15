@@ -42,3 +42,29 @@ Traceback (most recent call last):
     return F.conv2d(input, weight, bias, self.stride,
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 RuntimeError: Given groups=1, weight of size [64, 4, 7, 7], expected input[4, 5, 512, 640] to have 4 channels, but got 5 channels instead
+
+
+现在报错：
+(depthest_zy) zhouy@test-W790E1-CE:~/Works/DepthEstimation/my-est-v1$ python train.py --data_dir  /mnt/data/publicData/MICCAI19_SCARED/train/dataset7/keyframe4/image_02/data --epochs 100 --batch_size 2
+Found 2197 images in /mnt/data/publicData/MICCAI19_SCARED/train/dataset7/keyframe4/image_02/data/
+Epoch 1/100:   0%|                                                                                                                                               | 0/549 [00:04<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 410, in <module>
+    main()
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 406, in main
+    trainer.train(train_loader, config['num_epochs'])
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 295, in train
+    losses = self.train_step(batch, global_step)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/Works/DepthEstimation/my-est-v1/train.py", line 251, in train_step
+    d_loss_real = self.gan_loss(real_score, real_labels)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/loss.py", line 720, in forward
+    return F.binary_cross_entropy_with_logits(input, target,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/functional.py", line 3163, in binary_cross_entropy_with_logits
+    raise ValueError("Target size ({}) must be the same as input size ({})".format(target.size(), input.size()))
+ValueError: Target size (torch.Size([4, 1, 16, 20])) must be the same as input size (torch.Size([4, 1, 30, 38]))
