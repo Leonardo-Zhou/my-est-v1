@@ -1,0 +1,34 @@
+# 默认训练配置
+data_dir: ./data/endoscope_images
+batch_size: 4
+num_epochs: 100
+scale_factor: 0.5
+sequence_length: 3
+
+# 学习率
+lr_generator: 0.0002
+lr_discriminator: 0.0002
+
+# 损失权重
+lambda_recon: 1.0      # 重构损失
+lambda_guide: 0.5       # 初始分解指导损失  
+lambda_sparse: 0.1      # 稀疏性损失
+lambda_smooth: 0.1      # 平滑性损失
+lambda_temporal: 0.5    # 时间一致性损失
+lambda_gan: 0.1         # GAN损失
+
+# SVT参数
+svt_rank: 10
+svt_threshold: 0.1
+
+# 日志和保存
+log_interval: 10
+save_interval: 10
+checkpoint_dir: ./checkpoints
+log_dir: ./logs
+
+# 推理设置
+inference:
+  device: cuda
+  use_temporal_consistency: true
+  target_size: [512, 640]  # [H, W]
