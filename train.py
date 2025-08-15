@@ -395,7 +395,8 @@ def main():
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=4,
-        pin_memory=True
+        pin_memory=True,
+        
     )
     
     # 创建训练器
