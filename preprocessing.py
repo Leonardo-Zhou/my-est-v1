@@ -139,7 +139,7 @@ class HighlightDetector:
 class AdaptiveHighlightDetector(HighlightDetector):
     """自适应高光检测器，根据图像统计动态调整阈值"""
     
-    def __init__(self, base_threshold: float = 0.75, min_area: int = 10):  # 降低基础阈值
+    def __init__(self, base_threshold: float = 0.9, min_area: int = 10):
         super().__init__(hsv_threshold=base_threshold, 
                         ycbcr_threshold=base_threshold, 
                         min_area=min_area)

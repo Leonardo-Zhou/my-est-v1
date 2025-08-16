@@ -24,7 +24,7 @@ class ImageDecomposer:
                  checkpoint_path: Optional[str] = None,
                  device: str = 'cuda',
                  use_temporal_consistency: bool = True,
-                 scale_factor: float = 0.125):
+                 scale_factor: float = 0.25):
         """
         Args:
             checkpoint_path: 模型检查点路径
