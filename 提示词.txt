@@ -71,3 +71,7 @@ ValueError: Target size (torch.Size([4, 1, 16, 20])) must be the same as input s
 
 你现在应该可以看到result的结果。为什么我使用python inference.py --input /mnt/data/publicData/MICCAI19_SCARED/train/dataset7/keyframe4/image_02/data/0000000001.png --output ./results --type image --visualize --checkpoint ./checkpoints/checkpoint_epoch_100.pth（服务器上存在这个pth文件），
 但是跑出来的结果，也就是results中的结果，绘制出来的mask是一片黑？reflection也是黑色的？明明很显然有高光？并且，你的分解的依据是什么？有按照我说的要求吗？同时，分解出来的I'也不对，高光的部分完全没有被光照给体现出来，其应该体现在反射的部分或者光照分布的部分中。
+
+
+现在我训练了20个epoch，并测试了模型，结果存在results中。但是十分不理想。首先，复原的不理想。其次，恢复出来的本征图像，也就是instrinsic不理想，其实在是太亮了，什么特征都没有了。必须限制亮度，同  │
+│   时限制过多细节特征在shading中的出现。 

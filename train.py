@@ -117,10 +117,18 @@ class CycleGANTrainer:
         
     def init_networks(self):
         """初始化网络"""
-        # 内在分解网络
-        self.decomposition_net = IntrinsicDecompositionNet(
-            input_channels=3
-        ).to(self.device)
+        # 使用改进的网络
+        from improved_network import ImprovedIntrinsicDecompositionNet, FastDecompositionNet
+        
+        # 根据配置选择网络
+        if self.config.get('use_fast_network', False):
+            self.decomposition_net = FastDecompositionNet(
+                input_channels=3
+            ).to(self.device)
+        else:
+            self.decomposition_net = ImprovedIntrinsicDecompositionNet(
+                input_channels=3
+            ).to(self.device)
         
         # 高光去除网络
         self.highlight_removal_net = HighlightRemovalNet(
@@ -138,6 +146,10 @@ class CycleGANTrainer:
         
     def init_losses(self):
         """初始化损失函数"""
+        # 使用改进的损失函数
+        from improved_network import ImprovedDecompositionLoss
+        
+        self.decomposition_loss = ImprovedDecompositionLoss(self.config)
         self.l1_loss = nn.L1Loss()
         self.l2_loss = nn.MSELoss()
         self.gan_loss = nn.BCEWithLogitsLoss()
@@ -222,9 +234,13 @@ class CycleGANTrainer:
         refined_image = self.highlight_removal_net(input_with_mask)
         
         # 计算损失
-        # 重构损失
-        reconstruction = intrinsic * shading + reflection
-        losses['recon'] = self.l1_loss(reconstruction, main_frame)
+        # 使用改进的损失函数
+        if hasattr(self, 'decomposition_loss'):
+            losses = self.decomposition_loss(main_frame, intrinsic, shading, reflection)
+        else:
+            # 兼容旧版本
+            reconstruction = intrinsic * shading + reflection
+            losses = {'recon': self.l1_loss(reconstruction, main_frame)}
         
         # 伪标签指导损失
         if pseudo_decompositions and self.use_pseudo_labels:
@@ -232,9 +248,9 @@ class CycleGANTrainer:
             pseudo_shading = torch.stack([d['shading'] for d in pseudo_decompositions]).to(self.device)
             pseudo_reflection = torch.stack([d['reflection'] for d in pseudo_decompositions]).to(self.device)
             
-            losses['guide_intrinsic'] = self.l1_loss(intrinsic, pseudo_intrinsic)
-            losses['guide_shading'] = self.l1_loss(shading, pseudo_shading)
-            losses['guide_reflection'] = self.l1_loss(reflection, pseudo_reflection)
+            losses['guide_intrinsic'] = self.l1_loss(intrinsic, pseudo_intrinsic) * 0.3
+            losses['guide_shading'] = self.l1_loss(shading, pseudo_shading) * 0.3
+            losses['guide_reflection'] = self.l1_loss(reflection, pseudo_reflection) * 0.3
         
         # 稀疏性损失（反射应该稀疏）
         losses['sparse'] = torch.mean(torch.abs(reflection))
@@ -305,6 +321,18 @@ class CycleGANTrainer:
                      losses['g_loss'] * self.config['lambda_gan'])
         
         total_loss.backward()
+        
+        # 梯度裁剪
+        if self.config.get('gradient_clip', 0) > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.decomposition_net.parameters(), 
+                self.config['gradient_clip']
+            )
+            torch.nn.utils.clip_grad_norm_(
+                self.highlight_removal_net.parameters(), 
+                self.config['gradient_clip']
+            )
+        
         self.optimizer_G.step()
         
         # 清理显存缓存
