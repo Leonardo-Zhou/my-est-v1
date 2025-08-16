@@ -17,10 +17,17 @@ lambda_sparse: 0.1      # 稀疏性损失
 lambda_smooth: 0.1      # 平滑性损失
 lambda_temporal: 0.5    # 时间一致性损失
 lambda_gan: 0.1         # GAN损失
+lambda_intrinsic: 0.1  # 内在颜色一致性损失
+lambda_mask: 0.1       # Mask正则化损失
 
 # SVT参数
 svt_rank: 10
 svt_threshold: 0.1
+
+# 分解方法选择
+decomposition_method: endosrr  # 可选: endosrr, physical, svt
+use_pseudo_labels: true  # 是否使用伪标签
+use_iterative: false  # 是否使用迭代分解（训练时建议false以加速）
 
 # 日志和保存
 log_interval: 10

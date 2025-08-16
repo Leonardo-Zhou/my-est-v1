@@ -37,8 +37,15 @@ class ImageDecomposer:
         self.scale_factor = scale_factor
         
         # 初始化各个组件
-        self.highlight_detector = AdaptiveHighlightDetector()
-        self.matrix_decomposer = WeightedSVT(rank=10)
+        # 根据配置选择分解方法
+        decomposition_method = 'endosrr'  # 默认使用EndoSRR方法
+        if decomposition_method == 'endosrr':
+            from endosrr_decomposition import EndoSRRBasedDecomposition
+            self.decomposer = EndoSRRBasedDecomposition(use_iterative=False)
+        else:
+            self.highlight_detector = AdaptiveHighlightDetector()
+            self.matrix_decomposer = WeightedSVT(rank=10)
+        
         self.postprocessor = IterativeRefinement(num_iterations=3)
         
         # 初始化网络
@@ -96,27 +103,35 @@ class ImageDecomposer:
         image = self.preprocess_image(image)
         H, W = image.shape[:2]
         
+        # 使用新的分解方法
+        if hasattr(self, 'decomposer'):
+            # 使用EndoSRR或Physical方法
+            result = self.decomposer.decompose(image)
+            
+            # 如果有网络模型，可以进一步精炼
+            if hasattr(self, 'decomposition_net'):
+                with torch.no_grad():
+                    image_tensor = torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).float().to(self.device)
+                    intrinsic_net, shading_net, reflection_net = self.decomposition_net(image_tensor)
+                    
+                    # 混合网络输出和传统方法
+                    alpha = 0.7  # 网络权重
+                    result['intrinsic'] = alpha * intrinsic_net[0].cpu().numpy().transpose(1, 2, 0) + (1-alpha) * result['intrinsic']
+                    result['shading'] = alpha * shading_net[0].cpu().numpy().transpose(1, 2, 0) + (1-alpha) * result['shading']
+                    result['reflection'] = alpha * reflection_net[0].cpu().numpy().transpose(1, 2, 0) + (1-alpha) * result['reflection']
+            
+            return result
+        
+        # 原有的分解流程（保留兼容性）
         # 步骤1: 高光检测
-        highlight_mask_original, scaled_image = self.highlight_detector.process(
+        highlight_mask, scaled_image = self.highlight_detector.process(
             (image * 255).astype(np.uint8) if image.max() <= 1 else image,
-            scale_factor=self.scale_factor
+            scale_factor=1.0
         )
-
-        # 缩放图像以匹配训练尺寸
-        if self.scale_factor != 1.0:
-            new_h = int(H * self.scale_factor)
-            new_w = int(W * self.scale_factor)
-            image_scaled = cv2.resize(image, (new_w, new_h))
-            # 创建缩放后的highlight_mask用于矩阵分解
-            highlight_mask_scaled = cv2.resize(highlight_mask_original, (new_w, new_h))
-            highlight_mask = highlight_mask_scaled
-        else:
-            image_scaled = image.copy()
-            highlight_mask = highlight_mask_original
         
         # 步骤2: 初始矩阵分解
         initial_intrinsic_shading, initial_reflection = self.matrix_decomposer.decompose(
-            image_scaled, highlight_mask
+            image, highlight_mask
         )
         
         # 步骤3: 神经网络精炼

@@ -97,9 +97,20 @@ class CycleGANTrainer:
         self.init_optimizers()
         
         # 初始化其他组件
-        self.highlight_detector = AdaptiveHighlightDetector()
-        self.matrix_decomposer = WeightedSVT(rank=config['svt_rank'])
+        # 根据配置选择分解方法
+        decomposition_method = config.get('decomposition_method', 'endosrr')
+        if decomposition_method == 'endosrr':
+            from endosrr_decomposition import EndoSRRBasedDecomposition
+            self.decomposer = EndoSRRBasedDecomposition(use_iterative=config.get('use_iterative', False))
+        elif decomposition_method == 'physical':
+            from improved_decomposition import PhysicallyBasedDecomposition
+            self.decomposer = PhysicallyBasedDecomposition()
+        else:
+            self.highlight_detector = AdaptiveHighlightDetector()
+            self.matrix_decomposer = WeightedSVT(rank=config['svt_rank'])
+        
         self.postprocessor = IterativeRefinement(num_iterations=3)
+        self.use_pseudo_labels = config.get('use_pseudo_labels', True)
         
         # TensorBoard
         self.writer = SummaryWriter(config['log_dir'])
@@ -162,32 +173,45 @@ class CycleGANTrainer:
         # 提取中间帧作为主要处理对象
         main_frame = batch[:, seq_len // 2]
         
-        # 步骤1: 高光检测
+        # 使用新的分解方法生成伪标签
+        pseudo_decompositions = []
         highlight_masks = []
-        for b in range(batch_size):
-            frame_np = main_frame[b].cpu().numpy().transpose(1, 2, 0)
-            mask, _ = self.highlight_detector.process(
-                (frame_np * 255).astype(np.uint8),
-                scale_factor=1.0
-            )
-            highlight_masks.append(torch.from_numpy(mask).unsqueeze(0))
         
-        highlight_masks = torch.stack(highlight_masks).to(self.device)
+        if self.use_pseudo_labels:
+            for b in range(batch_size):
+                frame_np = main_frame[b].cpu().numpy().transpose(1, 2, 0)
+                
+                # 使用配置的分解方法
+                if hasattr(self, 'decomposer'):
+                    result = self.decomposer.decompose(frame_np)
+                    pseudo_decompositions.append({
+                        'intrinsic': torch.from_numpy(result['intrinsic']).permute(2, 0, 1),
+                        'shading': torch.from_numpy(result['shading']).permute(2, 0, 1),
+                        'reflection': torch.from_numpy(result['reflection']).permute(2, 0, 1)
+                    })
+                    highlight_masks.append(torch.from_numpy(result['highlight_mask']).unsqueeze(0))
+                else:
+                    # 使用原有的SVT方法
+                    mask, _ = self.highlight_detector.process(
+                        (frame_np * 255).astype(np.uint8),
+                        scale_factor=1.0
+                    )
+                    mask_np = mask
+                    intrinsic_shading, reflection = self.matrix_decomposer.decompose(
+                        frame_np, mask_np
+                    )
+                    # 简单分离I'和S
+                    shading = np.mean(intrinsic_shading, axis=2, keepdims=True)
+                    intrinsic = intrinsic_shading / (shading + 1e-8)
+                    
+                    pseudo_decompositions.append({
+                        'intrinsic': torch.from_numpy(intrinsic).permute(2, 0, 1),
+                        'shading': torch.from_numpy(shading).permute(2, 0, 1),
+                        'reflection': torch.from_numpy(reflection).permute(2, 0, 1)
+                    })
+                    highlight_masks.append(torch.from_numpy(mask).unsqueeze(0))
         
-        # 步骤2: 初始矩阵分解
-        initial_decompositions = []
-        for b in range(batch_size):
-            frame_np = main_frame[b].cpu().numpy().transpose(1, 2, 0)
-            mask_np = highlight_masks[b, 0].cpu().numpy()
-            
-            intrinsic_shading, reflection = self.matrix_decomposer.decompose(
-                frame_np, mask_np
-            )
-            
-            initial_decompositions.append({
-                'intrinsic_shading': torch.from_numpy(intrinsic_shading).permute(2, 0, 1),
-                'reflection': torch.from_numpy(reflection).permute(2, 0, 1)
-            })
+        highlight_masks = torch.stack(highlight_masks).to(self.device) if highlight_masks else torch.zeros(batch_size, 1, H, W).to(self.device)
         
         # 步骤3: 网络精炼
         # 内在分解
@@ -202,21 +226,15 @@ class CycleGANTrainer:
         reconstruction = intrinsic * shading + reflection
         losses['recon'] = self.l1_loss(reconstruction, main_frame)
         
-        # 初始分解指导损失
-        if len(initial_decompositions) > 0:
-            init_intrinsic_shading = torch.stack([
-                d['intrinsic_shading'] for d in initial_decompositions
-            ]).to(self.device)
-            init_reflection = torch.stack([
-                d['reflection'] for d in initial_decompositions
-            ]).to(self.device)
+        # 伪标签指导损失
+        if pseudo_decompositions and self.use_pseudo_labels:
+            pseudo_intrinsic = torch.stack([d['intrinsic'] for d in pseudo_decompositions]).to(self.device)
+            pseudo_shading = torch.stack([d['shading'] for d in pseudo_decompositions]).to(self.device)
+            pseudo_reflection = torch.stack([d['reflection'] for d in pseudo_decompositions]).to(self.device)
             
-            losses['guide_intrinsic'] = self.l1_loss(
-                intrinsic * shading, init_intrinsic_shading
-            )
-            losses['guide_reflection'] = self.l1_loss(
-                reflection, init_reflection
-            )
+            losses['guide_intrinsic'] = self.l1_loss(intrinsic, pseudo_intrinsic)
+            losses['guide_shading'] = self.l1_loss(shading, pseudo_shading)
+            losses['guide_reflection'] = self.l1_loss(reflection, pseudo_reflection)
         
         # 稀疏性损失（反射应该稀疏）
         losses['sparse'] = torch.mean(torch.abs(reflection))
@@ -225,6 +243,15 @@ class CycleGANTrainer:
         shading_dx = torch.abs(shading[:, :, :, 1:] - shading[:, :, :, :-1])
         shading_dy = torch.abs(shading[:, :, 1:, :] - shading[:, :, :-1, :])
         losses['smooth'] = torch.mean(shading_dx) + torch.mean(shading_dy)
+        
+        # 内在颜色一致性损失
+        intrinsic_mean = torch.mean(intrinsic, dim=(2, 3), keepdim=True)
+        losses['intrinsic_consistency'] = torch.mean((intrinsic - intrinsic_mean) ** 2) * self.config.get('lambda_intrinsic', 0.1)
+        
+        # Mask正则化损失
+        if highlight_masks is not None and highlight_masks.shape[0] > 0:
+            mask_sparsity = torch.mean(highlight_masks)
+            losses['mask_reg'] = mask_sparsity * self.config.get('lambda_mask', 0.1)
         
         # 时间一致性损失（如果有多帧）
         if seq_len > 1:
@@ -268,10 +295,13 @@ class CycleGANTrainer:
         # 总损失
         total_loss = (losses['recon'] * self.config['lambda_recon'] +
                      losses.get('guide_intrinsic', 0) * self.config['lambda_guide'] +
+                     losses.get('guide_shading', 0) * self.config.get('lambda_guide', 0.5) +
                      losses.get('guide_reflection', 0) * self.config['lambda_guide'] +
                      losses['sparse'] * self.config['lambda_sparse'] +
                      losses['smooth'] * self.config['lambda_smooth'] +
                      losses.get('temporal', 0) * self.config['lambda_temporal'] +
+                     losses.get('intrinsic_consistency', 0) +
+                     losses.get('mask_reg', 0) +
                      losses['g_loss'] * self.config['lambda_gan'])
         
         total_loss.backward()
