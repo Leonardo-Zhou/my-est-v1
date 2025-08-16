@@ -69,13 +69,41 @@ class ImageDecomposer:
         self.highlight_removal_net.eval()
     
     def load_checkpoint(self, checkpoint_path: str):
-        """加载模型检查点"""
+        """加载模型检查点，兼容不同架构"""
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
         
+        # 处理decomposition_net的加载
         if 'decomposition_net' in checkpoint:
-            self.decomposition_net.load_state_dict(checkpoint['decomposition_net'])
+            try:
+                # 尝试严格加载
+                self.decomposition_net.load_state_dict(checkpoint['decomposition_net'])
+            except RuntimeError as e:
+                print(f"严格加载失败，尝试兼容模式: {e}")
+                # 使用非严格模式加载，忽略不匹配的键
+                self.decomposition_net.load_state_dict(
+                    checkpoint['decomposition_net'], 
+                    strict=False
+                )
+        elif 'model' in checkpoint:  # 兼容旧格式
+            try:
+                self.decomposition_net.load_state_dict(checkpoint['model'])
+            except RuntimeError as e:
+                print(f"旧格式加载失败，尝试兼容模式: {e}")
+                self.decomposition_net.load_state_dict(
+                    checkpoint['model'], 
+                    strict=False
+                )
+        
+        # 处理highlight_removal_net的加载
         if 'highlight_removal_net' in checkpoint:
-            self.highlight_removal_net.load_state_dict(checkpoint['highlight_removal_net'])
+            try:
+                self.highlight_removal_net.load_state_dict(checkpoint['highlight_removal_net'])
+            except RuntimeError as e:
+                print(f"高光去除网络加载失败，尝试兼容模式: {e}")
+                self.highlight_removal_net.load_state_dict(
+                    checkpoint['highlight_removal_net'], 
+                    strict=False
+                )
     
     def preprocess_image(self, image: np.ndarray, target_size: Tuple[int, int] = (512, 640)) -> np.ndarray:
         """预处理图像"""

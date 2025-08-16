@@ -237,6 +237,12 @@ class CycleGANTrainer:
         # 使用改进的损失函数
         if hasattr(self, 'decomposition_loss'):
             losses = self.decomposition_loss(main_frame, intrinsic, shading, reflection)
+            # 确保有'recon'键用于后续计算
+            if 'reconstruction' in losses:
+                losses['recon'] = losses['reconstruction']
+            elif 'recon' not in losses:
+                reconstruction = intrinsic * shading + reflection
+                losses['recon'] = self.l1_loss(reconstruction, main_frame)
         else:
             # 兼容旧版本
             reconstruction = intrinsic * shading + reflection
