@@ -377,7 +377,7 @@ class CycleGANTrainer:
 def main():
     parser = argparse.ArgumentParser(description='Train image decomposition network')
     parser.add_argument('--config', type=str, default='config.yaml', help='Config file path')
-    parser.add_argument('--data_dir', type=str, required=True, help='Training data directory')
+    parser.add_argument('--data_dir', type=str, help='Training data directory')
     parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--lr', type=float, default=0.0002, help='Learning rate')

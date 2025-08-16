@@ -120,15 +120,25 @@ class EndoSRRBasedDecomposition:
         """
         H, W, C = image.shape
         
+        # 确保图像数据类型正确
+        if image.dtype != np.uint8:
+            image_display = (image * 255).astype(np.uint8) if image.max() <= 1 else image.astype(np.uint8)
+        else:
+            image_display = image
+            
         # 使用灰度图进行光照估计
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        gray = cv2.cvtColor(image_display, cv2.COLOR_RGB2GRAY)
         
         # 1. 初始光照估计（使用引导滤波）
         r = 30  # 滤波半径
         eps = 0.001
         
-        # 使用自身作为引导的滤波
-        shading_init = cv2.ximgproc.guidedFilter(gray, gray, r, eps)
+        # 使用引导滤波 - 需要opencv-contrib-python
+        try:
+            shading_init = cv2.ximgproc.guidedFilter(gray, gray, r, eps)
+        except AttributeError:
+            # 如果ximgproc不可用，使用双边滤波作为后备方案
+            shading_init = cv2.bilateralFilter(gray, r, sigmaColor=50, sigmaSpace=50)
         
         # 2. 优化光照使其平滑
         shading_smooth = self.optimize_shading_smoothness(shading_init)
@@ -153,10 +163,16 @@ class EndoSRRBasedDecomposition:
         H, W = shading.shape
         N = H * W
         
+        # 确保shading数据类型正确
+        if shading.dtype != np.uint8:
+            shading_uint8 = (shading * 255).astype(np.uint8) if shading.max() <= 1 else shading.astype(np.uint8)
+        else:
+            shading_uint8 = shading
+            
         # 构建稀疏矩阵用于平滑约束
         # 这里使用简化版本
         shading_smooth = cv2.bilateralFilter(
-            (shading * 255).astype(np.uint8),
+            shading_uint8,
             d=15,
             sigmaColor=50,
             sigmaSpace=50
@@ -297,7 +313,7 @@ class ChromaticityBasedDecomposition:
         
         # 高光mask：无色且高亮
         highlight_mask = achromatic_mask & high_luminance_mask
-        highlight_mask = cv2.GaussianBlur(highlight_mask.astype(np.float32), (5, 5), 1)
+        highlight_mask = cv2.GaussianBlur(highlight_mask.astype(np.float32), (5, 5), 1.0)
         
         # 3. 分离反射（假设反射是无色的）
         # 在高光区域，反射等于亮度超出的部分
