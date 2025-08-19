@@ -17,14 +17,18 @@ def export_gt_depths():
 
     parser.add_argument('--data_path',
                         type=str,
-                        help='path to the root of the SCARED data')
+                        help='path to the root of the SCARED data',
+                        required=True)  # 添加required=True确保必须有此参数
     parser.add_argument('--split',
                         type=str,
                         help='which split to export gt from',
                         choices=["endovis"],
                         default="endovis")
-    opt = parser.parse_args(args=[])
+    opt = parser.parse_args()  # 移除args=[]以正确解析命令行参数
 
+    if opt.data_path is None:
+        raise ValueError("--data_path argument is required")
+    
     split_folder = os.path.join(os.path.dirname(__file__), "splits", opt.split)
     lines = readlines(os.path.join(split_folder, "test_files.txt"))
     print("Exporting ground truth depths for {}".format(opt.split))
@@ -43,12 +47,13 @@ def export_gt_depths():
                 opt.data_path,
                 folder,
                 "data",
+                "scene_points",
                 f_str)
             depth_gt = cv2.imread(gt_depth_path, 3)
             depth_gt = depth_gt[:, :, 0]
-            gt_depth = depth_gt[0:1024, :]
+            depth_gt = depth_gt[0:1024, :]
 
-        gt_depths.append(gt_depth.astype(np.float32))
+        gt_depths.append(depth_gt.astype(np.float32))
 
     output_path = os.path.join(split_folder, "gt_depths.npz")
 

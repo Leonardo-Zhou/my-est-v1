@@ -50,11 +50,19 @@ bash run_nonlambertian_training.sh
 ```
 
 ### Testing
-
+导出 ground true depth
+```bash
+python export_gt_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train
+```
+绘制分解结果
 ```bash
 python test_nonlambertian.py \
-    --load_weights_folder /path/to/trained/weights \
-    --data_path /path/to/test/data
+    --load_weights_folder ./logs/nonlambertian_2025-08-19-13-06-13/models/weights_19 \
+    --data_path /mnt/data/publicData/MICCAI19_SCARED/train
+```
+测试depth 结果
+```bash
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs/nonlambertian_2025-08-19-13-06-13/models/weights_19
 ```
 
 ### Key Parameters
