@@ -4,5 +4,8 @@
       "Bash(find:*)"
     ],
     "deny": []
-  }
+  },
+  "disabledMcpjsonServers": [
+    "mcp-gp-pdf-reader"
+  ]
 }

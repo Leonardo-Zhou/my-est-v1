@@ -44,7 +44,11 @@ class nonlambertian_decompose_decoder(nn.Module):
         
         # Shading branch - using lower resolution features as shading is typically smoother
         for i in range(2, -1, -1):  # Start from scale 2 instead of 4 for shading
-            num_ch_in = self.num_ch_enc[i+2] if i == 2 else self.num_ch_dec[i + 1]
+            if i == 2:
+                # For the first layer of shading, use features from scale 3
+                num_ch_in = self.num_ch_enc[3] if len(self.num_ch_enc) > 3 else self.num_ch_dec[3]
+            else:
+                num_ch_in = self.num_ch_dec[i + 1]
             num_ch_out = self.num_ch_dec[i]
             self.convs[("upconv_S", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
             

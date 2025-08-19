@@ -1,3 +1,15 @@
 IID 这个文件夹中是Image_Intrinsic这个pdf中论文的项目代码。其将图片分解为I = A \times S。但是，根据另一篇论文，也就是1612开头的pdf的论文，非朗播体应该是分解为I = A \times S + R。我希望你能在IID这个项目的基础上进行更改，将分解更改为后面这个版本。我在这个的主目录下将代码都放出来了，你在其基础上更改。不要动IID这个文件夹中的内容。
 
-
+现在我进行了一定的更改。但是报错   File "/home/zhouy/Works/DepthEstimation/my-est-v1/layers.py", line 133, in forward                                         │
+       out = self.conv(out)                                                                                                                                      │
+             ^^^^^^^^^^^^^^                                                                                                                                      │
+     File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl                                │
+       return forward_call(*args, **kwargs)                                                                                                                      │
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                                      │
+     File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 463, in forward                                      │
+       return self._conv_forward(input, self.weight, self.bias)                                                                                                  │
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                  │
+     File "/home/zhouy/.conda/envs/depthest_zy/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 459, in _conv_forward                                │
+       return F.conv2d(input, weight, bias, self.stride,                                                                                                         │
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                         │
+   RuntimeError: Given groups=1, weight of size [64, 512, 3, 3], expected input[8, 128, 34, 42] to have 512 channels, but got 128 channels instead 

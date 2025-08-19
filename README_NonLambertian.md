@@ -40,11 +40,7 @@ The new model includes:
 
 1. **Basic Training**:
 ```bash
-python train_nonlambertian.py \
-    --data_path /path/to/SCARED/dataset \
-    --log_dir ./logs \
-    --batch_size 4 \
-    --num_epochs 30
+python train_nonlambertian.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs
 ```
 
 2. **Using the provided script**:
