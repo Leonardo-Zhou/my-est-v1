@@ -99,7 +99,12 @@ class NonLambertianTrainer:
             self.opt.frame_ids, 4, is_train=True, img_ext=img_ext)
         self.train_loader = DataLoader(
             train_dataset, self.opt.batch_size, True,
-            num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
+            num_workers=min(self.opt.num_workers, 6),  # 限制worker数量避免CPU瓶颈
+            pin_memory=True, 
+            drop_last=True,
+            prefetch_factor=2,      # 减少预取因子
+            persistent_workers=True # 保持worker进程，减少启动开销
+        )
         val_dataset = self.dataset(
             self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
             self.opt.frame_ids, 4, is_train=False, img_ext=img_ext)
@@ -187,7 +192,7 @@ class NonLambertianTrainer:
     def process_batch(self, inputs):
         """Pass a minibatch through the network and generate images and losses"""
         for key, ipt in inputs.items():
-            inputs[key] = ipt.to(self.device)
+            inputs[key] = ipt.to(self.device, non_blocking=True)  # 异步传输，减少等待时间
 
         # depth estimation
         features = self.models["encoder"](inputs["color_aug", 0, 0])
@@ -229,19 +234,22 @@ class NonLambertianTrainer:
     
     def nonlambertian_decompose(self, inputs, outputs):
         """Perform non-Lambertian decomposition: I = A × S + R"""
+        # 批量处理特征提取，减少重复计算
+        decompose_features = {}
         for f_i in self.opt.frame_ids:
-            decompose_features = self.models["decompose_encoder"](inputs[("color_aug", f_i, 0)])
-            # Get albedo (A), shading (S), and specular (R) components
-            albedo, shading, specular = self.models["decompose"](decompose_features)
+            decompose_features[f_i] = self.models["decompose_encoder"](inputs[("color_aug", f_i, 0)])
+        
+        # 批量分解和重建
+        for f_i in self.opt.frame_ids:
+            albedo, shading, specular = self.models["decompose"](decompose_features[f_i])
             
             outputs[("albedo", 0, f_i)] = albedo
             outputs[("shading", 0, f_i)] = shading  
             outputs[("specular", 0, f_i)] = specular
             
-            # Reconstruct image using non-Lambertian model: I = A × S + R
-            outputs[("reprojection_color", 0, f_i)] = (
-                outputs[("albedo", 0, f_i)] * outputs[("shading", 0, f_i)] + 
-                outputs[("specular", 0, f_i)]
+            # 使用就地操作减少内存分配: I = A × S + R
+            outputs[("reprojection_color", 0, f_i)] = torch.addcmul(
+                specular, albedo, shading
             )
         
         # Warping operations
@@ -321,13 +329,13 @@ class NonLambertianTrainer:
     def compute_losses(self, inputs, outputs):
         """Compute losses for non-Lambertian model"""
         losses = {}
-        total_loss = 0
-        loss_albedo_consistency = 0
-        loss_reprojection = 0
-        loss_disp_smooth = 0
-        loss_reconstruction = 0
-        loss_specular_smooth = 0
-        loss_decomposition_consistency = 0
+        # 使用tensor而不是标量，避免重复的GPU-CPU传输
+        device = next(iter(outputs.values())).device
+        loss_albedo_consistency = torch.tensor(0.0, device=device)
+        loss_reprojection = torch.tensor(0.0, device=device)
+        loss_disp_smooth = torch.tensor(0.0, device=device)
+        loss_reconstruction = torch.tensor(0.0, device=device)
+        loss_specular_smooth = torch.tensor(0.0, device=device)
 
         # Decomposition-Synthesis Loss: Ensure I = A × S + R
         for frame_id in self.opt.frame_ids:
@@ -341,19 +349,23 @@ class NonLambertianTrainer:
         # Albedo Consistency Loss: Albedo should be consistent across frames
         for frame_id in self.opt.frame_ids[1:]: 
             mask = outputs[("valid_mask", 0, frame_id)]
-            loss_albedo_consistency += (
-                torch.abs(outputs[("albedo", 0, 0)] - outputs[("albedo_warp", 0, frame_id)]).mean(1, True) * mask
-            ).sum() / mask.sum()
+            mask_sum = mask.sum()
+            if mask_sum > 0:  # 避免除零错误
+                loss_albedo_consistency += (
+                    torch.abs(outputs[("albedo", 0, 0)] - outputs[("albedo_warp", 0, frame_id)]).mean(1, True) * mask
+                ).sum() / mask_sum
 
         # Mapping-Synthesis Loss: Final reconstruction should match target
         for frame_id in self.opt.frame_ids[1:]:
             mask = outputs[("valid_mask", 0, frame_id)]
-            loss_reprojection += (
-                self.compute_reprojection_loss(
-                    inputs[("color_aug", 0, 0)], 
-                    outputs[("reprojection_color_warp", 0, frame_id)]
-                ) * mask
-            ).sum() / mask.sum()
+            mask_sum = mask.sum()
+            if mask_sum > 0:  # 避免除零错误
+                loss_reprojection += (
+                    self.compute_reprojection_loss(
+                        inputs[("color_aug", 0, 0)], 
+                        outputs[("reprojection_color_warp", 0, frame_id)]
+                    ) * mask
+                ).sum() / mask_sum
 
         # Depth smoothness
         disp = outputs[("disp", 0)]
@@ -368,13 +380,16 @@ class NonLambertianTrainer:
             # Encourage sparsity in specular component
             loss_specular_smooth += torch.mean(specular)
 
-        # Total loss with weights
+        # Total loss with weights - 使用更高效的计算
+        num_frames = len(self.opt.frame_ids[1:])
+        num_all_frames = len(self.opt.frame_ids)
+        
         total_loss = (
-            self.opt.reprojection_constraint * loss_reprojection / len(self.opt.frame_ids[1:]) +
-            self.opt.albedo_constraint * (loss_albedo_consistency / len(self.opt.frame_ids[1:])) +
+            self.opt.reprojection_constraint * loss_reprojection / max(num_frames, 1) +
+            self.opt.albedo_constraint * loss_albedo_consistency / max(num_frames, 1) +
             self.opt.disparity_smoothness * loss_disp_smooth +
-            self.opt.reconstruction_constraint * (loss_reconstruction / len(self.opt.frame_ids)) +
-            self.opt.specular_smoothness * (loss_specular_smooth / len(self.opt.frame_ids))
+            self.opt.reconstruction_constraint * loss_reconstruction / num_all_frames +
+            self.opt.specular_smoothness * loss_specular_smooth / num_all_frames
         )
 
         losses["loss"] = total_loss
@@ -398,6 +413,9 @@ class NonLambertianTrainer:
             outputs, losses = self.process_batch(inputs)
             self.log("val", inputs, outputs, losses)
             del inputs, outputs, losses
+            # 清理GPU缓存，避免内存碎片
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         self.set_train()
 
