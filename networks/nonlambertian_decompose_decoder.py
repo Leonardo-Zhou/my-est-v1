@@ -80,6 +80,9 @@ class nonlambertian_decompose_decoder(nn.Module):
         self.convs[("decompose_S_conv", 0)] = Conv3x3(self.num_ch_dec[0], 1)  # Shading is typically grayscale
         self.convs[("decompose_R_conv", 0)] = Conv3x3(self.num_ch_dec[0], self.num_output_channels)
         
+        # Learnable scale factor for specular component to prevent it from being too large
+        self.specular_scale = nn.Parameter(torch.tensor(0.1))  # Start with small scale
+        
         self.decoder = nn.ModuleList(list(self.convs.values()))
         self.sigmoid = nn.Sigmoid()
 
@@ -123,6 +126,11 @@ class nonlambertian_decompose_decoder(nn.Module):
             x_R = torch.cat(x_R, 1)
             x_R = self.convs[("upconv_R", i, 1)](x_R)
             
-        self.outputs[("decompose_R")] = self.sigmoid(self.convs[("decompose_R_conv", 0)](x_R))
+        # Scale specular to prevent it from dominating the reconstruction
+        raw_specular = self.sigmoid(self.convs[("decompose_R_conv", 0)](x_R))
+        self.outputs[("decompose_R")] = raw_specular * torch.clamp(self.specular_scale, min=0.0, max=1.0)
+
+        # v1 不施加约束版本
+        # self.outputs[("decompose_R")] = self.sigmoid(self.convs[("decompose_R_conv", 0)](x_R))
         
         return self.outputs[("decompose_A")], self.outputs[("decompose_S")], self.outputs[("decompose_R")]
