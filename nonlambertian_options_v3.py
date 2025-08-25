@@ -113,6 +113,9 @@ class NonLambertianOptions:
                                  default=10)
 
         # ABLATION options
+        self.parser.add_argument("--v1_multiscale",
+                                 help="if set, uses monodepth v1 multiscale",
+                                 action="store_true")
         self.parser.add_argument("--weights_init",
                                  type=str,
                                  help="pretrained or scratch",
