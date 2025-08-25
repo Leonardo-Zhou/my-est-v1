@@ -192,6 +192,23 @@ class NonLambertianTrainer:
 
         self.model_lr_scheduler.step()
 
+    def val(self):
+        """Validate the model on a single minibatch
+        """
+        self.set_eval()
+        try:
+            inputs = self.val_iter.next()
+        except StopIteration:
+            self.val_iter = iter(self.val_loader)
+            inputs = self.val_iter.next()
+
+        with torch.no_grad():
+            outputs, losses = self.process_batch(inputs)
+            self.log("val", inputs, outputs, losses)
+            del inputs, outputs, losses
+
+        self.set_train()
+
     def process_batch(self, inputs):
         """Pass a minibatch through the network and generate images and losses"""
         for key, ipt in inputs.items():
