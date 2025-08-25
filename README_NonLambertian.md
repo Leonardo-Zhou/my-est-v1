@@ -41,6 +41,8 @@ The new model includes:
 1. **Basic Training**:
 ```bash
 python train_nonlambertian.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs
+python train_nonlambertian_v2.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v2
+python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3
 ```
 
 2. **Using the provided script**:
@@ -62,7 +64,7 @@ python test_nonlambertian.py \
 ```
 测试depth 结果
 ```bash
-python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs/nonlambertian_2025-08-19-13-06-13/models/weights_19
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v2/nonlambertian_2025-08-24-12-33-35/models/weights_29
 ```
 
 ### Key Parameters
