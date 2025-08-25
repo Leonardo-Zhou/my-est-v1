@@ -433,8 +433,8 @@ class NonLambertianTrainer:
                     # Note: This is a simplified approach. In practice, you might want to
                     # share features between frames or use a temporal consistency approach.
                     frame_decompose_features = self.models["decompose_encoder"](frame_color)
-                    frame_albedo, _, _ = self.models["decompose"](frame_decompose_features)
-                    frame_albedo_adj, _, _ = self.models["adjust_net"](frame_albedo, torch.zeros_like(shading), torch.zeros_like(specular))
+                frame_albedo, frame_shading, frame_specular = self.models["decompose"](frame_decompose_features)
+                frame_albedo_adj, _, _ = self.models["adjust_net"](frame_albedo, frame_shading, frame_specular)
                 
                 # Compute consistency loss
                 loss_albedo_consistency += torch.mean(torch.abs(albedo - frame_albedo_adj))
