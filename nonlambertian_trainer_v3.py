@@ -308,6 +308,15 @@ class NonLambertianTrainer:
                     outputs[("color_identity", frame_id, scale)] = \
                         inputs[("color", frame_id, source_scale)]
                     
+    def compute_reprojection_loss(self, pred, target):
+        """Computes reprojection loss between a prediction and target"""
+        abs_diff = torch.abs(target - pred)
+        l1_loss = abs_diff.mean(1, True)
+        ssim_loss = self.ssim(pred, target).mean(1, True)
+        reprojection_loss = 0.85 * ssim_loss + 0.15 * l1_loss
+
+        return reprojection_loss
+
     def compute_losses(self, inputs, outputs):
         """Compute the reprojection and smoothness losses for a minibatch"""
         losses = {}
