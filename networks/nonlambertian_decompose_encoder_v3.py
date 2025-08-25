@@ -76,7 +76,7 @@ class NonLambertianResnetEncoderV3(nn.Module):
                    152: models.resnet152}
 
         if num_layers not in resnets:
-        raise ValueError("{} is not a valid number of resnet layers".format(num_layers))
+            raise ValueError("{} is not a valid number of resnet layers".format(num_layers))
 
         if num_input_images > 1:
             self.encoder = resnet_multiimage_input(num_layers, pretrained, num_input_images)
