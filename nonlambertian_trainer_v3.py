@@ -568,7 +568,7 @@ class NonLambertianTrainer:
                 # save the sizes - these are needed at prediction time
                 to_save['height'] = self.opt.height
                 to_save['width'] = self.opt.width
-                to_save['use_stereo'] = self.opt.use_stereo
+                to_save['use_stereo'] = self.opt.eval_stereo
             torch.save(to_save, save_path)
 
         save_path = os.path.join(save_folder, "adam.pth")
