@@ -284,6 +284,10 @@ class NonLambertianTrainer:
 
             outputs[("depth", 0, scale)] = depth
 
+            # Generate color prediction for the reference frame (frame_id=0)
+            # This is needed for logging
+            outputs[("color", 0, scale)] = inputs[("color", 0, source_scale)]
+
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
 
                 if frame_id == "s":
