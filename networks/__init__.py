@@ -6,3 +6,5 @@ from .decompose_decoder import decompose_decoder
 from .nonlambertian_decompose_decoder import nonlambertian_decompose_decoder
 from .nonlambertian_decompose_encoder_v3 import NonLambertianResnetEncoderV3
 from .nonlambertian_decompose_decoder_v3 import NonLambertianDecomposeDecoderV3
+from .nonlambertian_decompose_encoder_v4 import NonLambertianResnetEncoderV4
+from .nonlambertian_decompose_decoder_v4 import NonLambertianDecomposeDecoderV4

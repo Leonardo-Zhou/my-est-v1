@@ -114,14 +114,13 @@ The new model should provide:
 - Total Loss = α₁×L_reconstruction + α₂×L_albedo + α₃×L_reprojection + α₄×L_specular + α₅×L_depth_smooth
 - Recommended: α₁=0.2, α₂=0.2, α₃=1.0, α₄=0.01, α₅=0.01
 
-## References
 
-1. Original IID-SfmLearner paper: "Image Intrinsic-Based Unsupervised Monocular Depth Estimation in Endoscopy"
-2. Non-Lambertian intrinsics: "Learning Non-Lambertian Object Intrinsics across ShapeNet Categories"
-
-## Notes
-
-- The model is backward compatible with the original codebase
-- Both Lambertian and Non-Lambertian models can coexist
-- Training data and evaluation protocols remain the same
-- GPU memory requirements may be slightly higher due to the additional specular branch
+# 实验更改
+- 实验1：
+    原始参数，增加R分支
+- 实验2：
+    增加对R的正则约束，提升反射相关的损失函数权重
+- 实验3：
+    将根据原本项目的decompose的结构，更改为使用ShapeNet的decompose结构
+- 实验4：
+    实验3的基础上，Shading从中等分辨率开始，输出为灰度图
