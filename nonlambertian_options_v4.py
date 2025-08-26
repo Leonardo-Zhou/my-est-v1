@@ -144,7 +144,7 @@ class NonLambertianOptionsV4:
                                  nargs="+",
                                  type=str,
                                  help="models to load",
-                                 default=["encoder", "depth", "pose_encoder", "pose", "decompose_encoder", "decompose", "adjust_net"])
+                                 default=["encoder", "depth", "pose_encoder", "pose", "decompose_encoder", "decompose", "adjust_net_v4"])
 
         # LOGGING options
         self.parser.add_argument("--log_frequency",

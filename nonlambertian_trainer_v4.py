@@ -54,9 +54,9 @@ class NonLambertianTrainerV4:
         self.models["decompose"].to(self.device)
         self.parameters_to_train += list(self.models["decompose"].parameters())
 
-        self.models["adjust_net"] = networks.adjust_net()
-        self.models["adjust_net"].to(self.device)
-        self.parameters_to_train += list(self.models["adjust_net"].parameters())
+        self.models["adjust_net_v4"] = networks.adjust_net_v4()
+        self.models["adjust_net_v4"].to(self.device)
+        self.parameters_to_train += list(self.models["adjust_net_v4"].parameters())
 
         self.models["pose_encoder"] = networks.ResnetEncoder(
             self.opt.num_layers,
@@ -228,7 +228,7 @@ class NonLambertianTrainerV4:
         outputs[("decompose_A", 0)], outputs[("decompose_S", 0)], outputs[("decompose_R", 0)] = self.models["decompose"](decompose_features)
         
         # Apply adjust net to get final intrinsic images
-        outputs[("albedo", 0)], outputs[("shading", 0)], outputs[("specular", 0)] = self.models["adjust_net"](
+        outputs[("albedo", 0)], outputs[("shading", 0)], outputs[("specular", 0)] = self.models["adjust_net_v4"](
             outputs[("decompose_A", 0)], outputs[("decompose_S", 0)], outputs[("decompose_R", 0)])
 
         # pose
@@ -424,7 +424,7 @@ class NonLambertianTrainerV4:
                 with torch.no_grad():
                     frame_decompose_features = self.models["decompose_encoder"](frame_color)
                 frame_albedo, frame_shading, frame_specular = self.models["decompose"](frame_decompose_features)
-                frame_albedo_adj, _, _ = self.models["adjust_net"](frame_albedo, frame_shading, frame_specular)
+                frame_albedo_adj, _, _ = self.models["adjust_net_v4"](frame_albedo, frame_shading, frame_specular)
                 
                 loss_albedo_consistency += torch.mean(torch.abs(albedo - frame_albedo_adj))
         

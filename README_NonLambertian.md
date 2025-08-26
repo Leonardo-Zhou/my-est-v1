@@ -44,6 +44,8 @@ python train_nonlambertian.py --data_path /mnt/data/publicData/MICCAI19_SCARED/t
 python train_nonlambertian_v2.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v2
 python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/default
 python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/v1_multiscale --v1_multiscale --num_epochs 20
+python train_nonlambertian_v4.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v4/default --num_epochs 10
+
 ```
 
 2. **Using the provided script**:
