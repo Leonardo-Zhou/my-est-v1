@@ -562,7 +562,7 @@ class NonLambertianTrainer:
         os.makedirs(save_folder, exist_ok=True)
 
         for model_name, model in self.models.items():
-            save_path = os.path.join(save_folder, "{}".format(model_name))
+            save_path = os.path.join(save_folder, "{}.pth".format(model_name))
             to_save = model.state_dict()
             if model_name == 'encoder':
                 # save the sizes - these are needed at prediction time
@@ -585,7 +585,7 @@ class NonLambertianTrainer:
 
         for n in self.opt.models_to_load:
             print("Loading {} weights...".format(n))
-            path = os.path.join(self.opt.load_weights_folder, n)
+            path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))
             model_dict = self.models[n].state_dict()
             pretrained_dict = torch.load(path)
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
