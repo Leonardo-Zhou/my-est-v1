@@ -42,7 +42,8 @@ The new model includes:
 ```bash
 python train_nonlambertian.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs
 python train_nonlambertian_v2.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v2
-python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3
+python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/default
+python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/v1_multiscale --v1_multiscale --num_epochs 20
 ```
 
 2. **Using the provided script**:
@@ -65,6 +66,8 @@ python test_nonlambertian.py \
 测试depth 结果
 ```bash
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v2/nonlambertian_2025-08-24-12-33-35/models/weights_29
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/default/nonlambertian_v3_2025-08-25-20-20-14/models/weights_29
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/v1_multiscale/nonlambertian_v3_2025-08-26-10-20-53/models/weights_10
 ```
 
 ### Key Parameters
@@ -113,6 +116,18 @@ The new model should provide:
 ### Loss Function Weights:
 - Total Loss = α₁×L_reconstruction + α₂×L_albedo + α₃×L_reprojection + α₄×L_specular + α₅×L_depth_smooth
 - Recommended: α₁=0.2, α₂=0.2, α₃=1.0, α₄=0.01, α₅=0.01
+
+## References
+
+1. Original IID-SfmLearner paper: "Image Intrinsic-Based Unsupervised Monocular Depth Estimation in Endoscopy"
+2. Non-Lambertian intrinsics: "Learning Non-Lambertian Object Intrinsics across ShapeNet Categories"
+
+## Notes
+
+- The model is backward compatible with the original codebase
+- Both Lambertian and Non-Lambertian models can coexist
+- Training data and evaluation protocols remain the same
+- GPU memory requirements may be slightly higher due to the additional specular branch
 
 
 # 实验更改
