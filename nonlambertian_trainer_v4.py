@@ -184,10 +184,6 @@ class NonLambertianTrainerV4:
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
-            
-            # 清理内存
-            del outputs, losses
-            torch.cuda.empty_cache()
 
             duration = time.time() - before_op_time
 
@@ -197,6 +193,10 @@ class NonLambertianTrainerV4:
                 self.log_time(batch_idx, duration, losses["loss"].cpu().data)
                 self.log("train", inputs, outputs, losses)
                 self.val()
+            
+            # 清理内存 - 在日志记录之后
+            del outputs, losses
+            torch.cuda.empty_cache()
 
             self.step += 1
 
