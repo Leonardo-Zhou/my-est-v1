@@ -463,6 +463,7 @@ class NonLambertianTrainerV4:
         
         # Apply progressive weight based on training epoch
         specular_weight = self.current_specular_weight if hasattr(self, 'current_specular_weight') else 1.0
+        num_all_frames = len(self.opt.frame_ids)  # 定义缺失的变量
         
         total_loss += specular_weight * self.opt.specular_smoothness * loss_specular_smooth / num_all_frames
         total_loss += specular_weight * self.opt.specular_l1_sparsity * loss_specular_l1 / num_all_frames
