@@ -43,20 +43,50 @@ class NonLambertianTrainerV4:
         self.models["depth"].to(self.device)
         self.parameters_to_train += list(self.models["depth"].parameters())
 
-        # Use the new non-Lambertian decompose decoder v4
-        self.models["decompose_encoder"] = networks.NonLambertianResnetEncoderV4(
-            self.opt.num_layers, self.opt.weights_init == "pretrained")
+        # 网络结构
+        # 根据structures参数选择不同的网络结构
+        if self.opt.structures == "shared_encoder":
+            # 与深度网络共享编码器
+            self.models["decompose_encoder"] = self.models["encoder"]
+        elif self.opt.structures == "skip_links_0":
+            # 不使用跳跃连接
+            self.models["decompose_encoder"] = networks.NonLambertianResnetEncoderV4(
+                self.opt.num_layers, self.opt.weights_init == "pretrained", use_skips=False)
+        elif self.opt.structures == "skip_links_3":
+            # 仅在scale 3及更精细尺度使用跳跃连接
+            self.models["decompose_encoder"] = networks.NonLambertianResnetEncoderV4(
+                self.opt.num_layers, self.opt.weights_init == "pretrained")
+        else:  # independent (default)
+            # 独立编码器
+            self.models["decompose_encoder"] = networks.NonLambertianResnetEncoderV4(
+                self.opt.num_layers, self.opt.weights_init == "pretrained")
+        
         self.models["decompose_encoder"].to(self.device)
         self.parameters_to_train += list(self.models["decompose_encoder"].parameters())
         
-        self.models["decompose"] = networks.NonLambertianDecomposeDecoderV4(
-            self.models["decompose_encoder"].num_ch_enc, self.opt.scales)
+        # 解码器
+        if self.opt.structures == "skip_links_0":
+            # 不使用跳跃连接
+            self.models["decompose"] = networks.NonLambertianDecomposeDecoderV4(
+                self.models["decompose_encoder"].num_ch_enc, self.opt.scales, use_skips=False)
+        elif self.opt.structures == "skip_links_3":
+            # 仅在scale 3及更精细尺度使用跳跃连接
+            self.models["decompose"] = networks.NonLambertianDecomposeDecoderV4(
+                self.models["decompose_encoder"].num_ch_enc, self.opt.scales)
+            # 设置解码器仅在精细尺度使用跳跃连接
+            self.models["decompose"].use_skips_fine_only = True
+        else:  # independent, shared_encoder
+            # 使用默认跳跃连接
+            self.models["decompose"] = networks.NonLambertianDecomposeDecoderV4(
+                self.models["decompose_encoder"].num_ch_enc, self.opt.scales)
+        
         self.models["decompose"].to(self.device)
         self.parameters_to_train += list(self.models["decompose"].parameters())
 
-        self.models["adjust_net_v4"] = networks.adjust_net_v4_lite()
-        self.models["adjust_net_v4"].to(self.device)
-        self.parameters_to_train += list(self.models["adjust_net_v4"].parameters())
+        # 调整网络
+        self.models["adjust_net"] = networks.AdjustNetV4Lite()
+        self.models["adjust_net"].to(self.device)
+        self.parameters_to_train += list(self.models["adjust_net"].parameters())
 
         self.models["pose_encoder"] = networks.ResnetEncoder(
             self.opt.num_layers,

@@ -30,6 +30,8 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
         self.use_skips = use_skips
         self.upsample_mode = 'nearest'
         self.scales = scales
+        # For Skip Links-3: Use skips only at scales 3 and finer
+        self.use_skips_fine_only = False
         
         self.num_ch_enc = num_ch_enc
         # 使用原版本验证过的通道配置
@@ -49,7 +51,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             num_ch_in = self.num_ch_dec[i]
             # 添加编码器的跳跃连接
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    num_ch_in += self.num_ch_enc[i - 1]
             num_ch_out = self.num_ch_dec[i]
             self.convs[("upconv_A", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
         
@@ -67,7 +71,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             # upconv_1
             num_ch_in = self.num_ch_dec[i]
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    num_ch_in += self.num_ch_enc[i - 1]
             # 在最细尺度添加albedo特征以实现组件间交互
             if i == 0:
                 num_ch_in += self.num_ch_dec[0]  # 添加albedo特征
@@ -84,7 +90,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             # upconv_1
             num_ch_in = self.num_ch_dec[i]
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    num_ch_in += self.num_ch_enc[i - 1]
             num_ch_out = self.num_ch_dec[i]
             self.convs[("upconv_R", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
         
@@ -109,7 +117,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             x_A = [upsample(x_A)]
             # 添加编码器的跳跃连接
             if self.use_skips and i > 0:
-                x_A += [input_features[i - 1]]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    x_A += [input_features[i - 1]]
             x_A = torch.cat(x_A, 1)
             x_A = self.convs[("upconv_A", i, 1)](x_A)
         
@@ -121,7 +131,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             x_S = self.convs[("upconv_S", i, 0)](x_S)
             x_S = [upsample(x_S)]
             if self.use_skips and i > 0:
-                x_S += [input_features[i - 1]]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    x_S += [input_features[i - 1]]
             # 在最细尺度添加albedo特征以实现交互
             if i == 0:
                 x_S += [x_A]
@@ -136,7 +148,9 @@ class NonLambertianDecomposeDecoderV4(nn.Module):
             x_R = self.convs[("upconv_R", i, 0)](x_R)
             x_R = [upsample(x_R)]
             if self.use_skips and i > 0:
-                x_R += [input_features[i - 1]]
+                # For Skip Links-3: Use skips only at scales 3 and finer (i.e., i >= 3)
+                if not self.use_skips_fine_only or (self.use_skips_fine_only and i >= 3):
+                    x_R += [input_features[i - 1]]
             x_R = torch.cat(x_R, 1)
             x_R = self.convs[("upconv_R", i, 1)](x_R)
         

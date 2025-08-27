@@ -68,11 +68,12 @@ class NonLambertianResnetEncoderV4(nn.Module):
     基于原版本的成功设计，为Non-Lambertian分解提供优化的特征提取
     保持与V4解码器的兼容性
     """
-    def __init__(self, num_layers, pretrained, num_input_images=1):
+    def __init__(self, num_layers, pretrained, num_input_images=1, use_skips=True):
         super(NonLambertianResnetEncoderV4, self).__init__()
 
         # 使用与原版本相同的通道配置
         self.num_ch_enc = np.array([64, 64, 128, 256, 512])
+        self.use_skips = use_skips
 
         resnets = {18: models.resnet18,
                    34: models.resnet34,

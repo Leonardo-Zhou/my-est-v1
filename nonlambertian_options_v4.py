@@ -197,6 +197,11 @@ class NonLambertianOptionsV4:
                                  action="store_true")
 
         # Non-Lambertian specific options V4
+        self.parser.add_argument("--structures",
+                                 type=str,
+                                 help="network structures to use (skip_links_3, skip_links_0, shared_encoder, independent)",
+                                 default="independent",
+                                 choices=["skip_links_3", "skip_links_0", "shared_encoder", "independent"])
         self.parser.add_argument("--reconstruction_constraint",
                                  type=float,
                                  help="weight for reconstruction constraint loss (I = A*S + R)",
