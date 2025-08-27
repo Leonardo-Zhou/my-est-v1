@@ -423,7 +423,7 @@ class NonLambertianTrainerV4:
         
         # 只在训练后期且每20个batch启用一次，并且权重很小
         if (hasattr(self, 'epoch') and self.epoch > 10 and 
-            hasattr(self, 'step') and self.step % 20 == 0 and
+            hasattr(self, 'step') and self.step % 2 == 0 and
             len(self.opt.frame_ids) > 1):
             
             # 简化的一致性约束：只比较albedo的均值

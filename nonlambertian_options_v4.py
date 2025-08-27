@@ -46,11 +46,11 @@ class NonLambertianOptionsV4:
         self.parser.add_argument("--height",
                                  type=int,
                                  help="input image height",
-                                 default=192)
+                                 default=256)
         self.parser.add_argument("--width",
                                  type=int,
                                  help="input image width",
-                                 default=640)
+                                 default=320)
         self.parser.add_argument("--disparity_smoothness",
                                  type=float,
                                  help="disparity smoothness weight",
