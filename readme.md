@@ -45,7 +45,7 @@ python train_nonlambertian_v2.py --data_path /mnt/data/publicData/MICCAI19_SCARE
 python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/default
 python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/v1_multiscale --v1_multiscale --num_epochs 20
 python train_nonlambertian_v4.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v4/change_size --num_epochs 10
-
+python train_nonlambertian_v4.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v4/independent --num_epochs 10 --structures independent
 ```
 
 2. **Using the provided script**:

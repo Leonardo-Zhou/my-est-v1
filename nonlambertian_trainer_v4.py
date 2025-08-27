@@ -84,7 +84,7 @@ class NonLambertianTrainerV4:
         self.parameters_to_train += list(self.models["decompose"].parameters())
 
         # 调整网络
-        self.models["adjust_net"] = networks.AdjustNetV4Lite()
+        self.models["adjust_net"] = networks.adjust_net_v4_lite()
         self.models["adjust_net"].to(self.device)
         self.parameters_to_train += list(self.models["adjust_net"].parameters())
 
@@ -262,7 +262,7 @@ class NonLambertianTrainerV4:
         outputs[("decompose_A", 0)], outputs[("decompose_S", 0)], outputs[("decompose_R", 0)] = self.models["decompose"](decompose_features)
         
         # Apply adjust net to get final intrinsic images
-        outputs[("albedo", 0)], outputs[("shading", 0)], outputs[("specular", 0)] = self.models["adjust_net_v4"](
+        outputs[("albedo", 0)], outputs[("shading", 0)], outputs[("specular", 0)] = self.models["adjust_net"](
             outputs[("decompose_A", 0)], outputs[("decompose_S", 0)], outputs[("decompose_R", 0)])
 
         # pose
