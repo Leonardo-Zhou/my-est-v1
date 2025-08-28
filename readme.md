@@ -46,6 +46,8 @@ python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARE
 python train_nonlambertian_v3.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v3/v1_multiscale --v1_multiscale --num_epochs 20
 python train_nonlambertian_v4.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v4/change_size --num_epochs 10
 python train_nonlambertian_v4.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v4/independent --num_epochs 10 --structures independent
+
+python train_nonlambertian_v5.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --log_dir ./logs_v5 --num_epochs 10
 ```
 
 2. **Using the provided script**:
@@ -69,7 +71,7 @@ python test_nonlambertian.py \
 ```bash
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v2/nonlambertian_2025-08-24-12-33-35/models/weights_29
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/default/nonlambertian_v3_2025-08-25-20-20-14/models/weights_29
-python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v4/independent/nonlambertian_v4/models/weights_15
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v4/skip-0/nonlambertian_v4/models/weights_9
 ```
 
 ### Key Parameters
