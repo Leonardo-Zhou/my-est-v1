@@ -43,10 +43,10 @@ class NonLambertianDecomposeDecoderV5(nn.Module):
             self.convs[("upconv_A", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
         
         # Shading branch - using lower resolution features as shading is typically smoother
-        for i in range(4, -1, -1):  # Start from scale 2 instead of 4 for shading
-            if i == 2:
-                # For the first layer of shading, use features from scale 2
-                num_ch_in = self.num_ch_enc[2] if len(self.num_ch_enc) > 2 else self.num_ch_dec[2]
+        for i in range(4, -1, -1):  # Start from scale 4 as requested
+            if i == 4:
+                # For the first layer of shading, use features from scale 4
+                num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > 4 else self.num_ch_dec[4]
             else:
                 num_ch_in = self.num_ch_dec[i + 1]
             num_ch_out = self.num_ch_dec[i]
@@ -102,8 +102,8 @@ class NonLambertianDecomposeDecoderV5(nn.Module):
         self.outputs[("decompose_A")] = self.sigmoid(self.convs[("decompose_A_conv", 0)](x_A))
         
         # Shading decoder (S) 
-        x_S = input_features[2]  # Start from lower resolution
-        for i in range(2, -1, -1):
+        x_S = input_features[-1]  # Start from highest resolution as requested
+        for i in range(4, -1, -1):
             x_S = self.convs[("upconv_S", i, 0)](x_S)
             x_S = [upsample(x_S)]
             if self.use_skips and i > 0:
