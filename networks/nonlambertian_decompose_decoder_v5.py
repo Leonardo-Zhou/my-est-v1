@@ -14,7 +14,7 @@ class NonLambertianDecomposeDecoderV5(nn.Module):
     Following the model: I = A × S + R
     """
     def __init__(self, num_ch_enc, scales=range(4), num_output_channels=3, use_skips=True):
-        super(nonlambertian_decompose_decoder, self).__init__()
+        super(NonLambertianDecomposeDecoderV5, self).__init__()
         
         self.num_output_channels = num_output_channels
         self.use_skips = use_skips
