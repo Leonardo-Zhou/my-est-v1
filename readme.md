@@ -69,7 +69,7 @@ python test_nonlambertian.py \
 ```bash
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v2/nonlambertian_2025-08-24-12-33-35/models/weights_29
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/default/nonlambertian_v3_2025-08-25-20-20-14/models/weights_29
-python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/v1_multiscale/nonlambertian_v3_2025-08-26-10-20-53/models/weights_10
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v4/independent/nonlambertian_v4/models/weights_15
 ```
 
 ### Key Parameters
