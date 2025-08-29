@@ -71,7 +71,7 @@ python test_nonlambertian.py \
 ```bash
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v2/nonlambertian_2025-08-24-12-33-35/models/weights_29
 python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v3/default/nonlambertian_v3_2025-08-25-20-20-14/models/weights_29
-python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v4/skip-0/nonlambertian_v4/models/weights_9
+python evaluate_depth.py --data_path /mnt/data/publicData/MICCAI19_SCARED/train --load_weights_folder ./logs_v5/nonlambertian_2025-08-28-21-59-37/models/weights_27
 ```
 
 ### Key Parameters
@@ -143,3 +143,6 @@ The new model should provide:
     将根据原本项目的decompose的结构，更改为使用ShapeNet的decompose结构
 - 实验4：
     实验3的基础上，Shading从中等分辨率开始，输出为灰度图
+- 实验5：
+    实验2的基础上，更改了S的scale，从2变为4
+    
