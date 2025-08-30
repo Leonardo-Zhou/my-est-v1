@@ -237,8 +237,50 @@ class NonLambertianTrainerV7:
         outputs['cam_T_cam'] = transformation_from_parameters(
             axisangle[:, 0], translation[:, 0], invert=True)
 
-        # adjust net
-        outputs["adjusted_depth"] = self.models["adjust_net"](outputs)
+        # Warping operations for adjust_net
+        disp = outputs[("disp", 0)]
+        disp = F.interpolate(disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
+        _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
+        
+        for i, frame_id in enumerate(self.opt.frame_ids[1:]):
+            T = outputs['cam_T_cam'][:, i + 1]
+
+            cam_points = self.backproject_depth[0](
+                depth, inputs["inv_K", 0])
+            pix_coords = self.project_3d[0](
+                cam_points, inputs["K", 0], T)
+
+            outputs["sample", frame_id, 0] = pix_coords
+
+            outputs["color", frame_id, 0] = F.grid_sample(
+                inputs["color", frame_id, 0],
+                outputs["sample", frame_id, 0],
+                padding_mode="border")
+                
+            # masking zero values
+            mask_ones = torch.ones_like(inputs["color", frame_id, 0])
+            mask_warp = F.grid_sample(
+                mask_ones,
+                outputs["sample", frame_id, 0],
+                padding_mode="zeros", align_corners=True)
+            valid_mask = (mask_warp.abs().mean(dim=1, keepdim=True) > 0.0).float()
+            outputs["valid_mask", 0, frame_id] = valid_mask
+
+            # Compute difference for adjustment
+            outputs["warp_diff_color", 0, frame_id] = (
+                torch.abs(inputs["color", 0, 0] - outputs["color", frame_id, 0]) * valid_mask
+            )
+            
+            # Adjust depth based on color differences
+            outputs["transform", 0, frame_id] = self.models["adjust_net"](
+                outputs["warp_diff_color", 0, frame_id]
+            )
+            outputs["adjusted_depth", 0, frame_id] = (
+                outputs["transform", 0, frame_id] + outputs["depth", 0, 0]
+            )
+            outputs["adjusted_depth", 0, frame_id] = torch.clamp(
+                outputs["adjusted_depth", 0, frame_id], min=0.0
+            )
 
         self.generate_images_pred(inputs, outputs)
         losses = self.compute_losses(inputs, outputs)
