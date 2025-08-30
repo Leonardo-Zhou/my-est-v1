@@ -222,7 +222,13 @@ class NonLambertianTrainerV7:
         outputs["reconstructed"] = outputs[("decompose_A"), 0] * outputs[("decompose_S"), 0] + outputs[("decompose_R"), 0]
 
         # pose estimation
-        all_color_aug = torch.cat([inputs[('color_aug', i, 0)] for i in self.opt.frame_ids], 1)
+        if self.opt.pose_model_input == "pairs":
+            # Use only the first two frames for pose estimation when in pairs mode
+            pose_frames = self.opt.frame_ids[:2]
+        else:
+            # Use all frames for pose estimation
+            pose_frames = self.opt.frame_ids
+        all_color_aug = torch.cat([inputs[('color_aug', i, 0)] for i in pose_frames], 1)
         features = [self.models["pose_encoder"](all_color_aug)]
         axisangle, translation = self.models["pose"](features)
 
