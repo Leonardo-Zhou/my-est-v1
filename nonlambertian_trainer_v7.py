@@ -61,7 +61,7 @@ class NonLambertianTrainerV7:
         # Convert to ranges
         albedo_range = range(max(albedo_scales), min(albedo_scales) - 1, -1) if albedo_scales else range(4, -1, -1)
         shading_range = range(max(shading_scales), min(shading_scales) - 1, -1) if shading_scales else range(4, -1, -1)
-        specular_range = range(max(specular_scales), min(specular_scales) - 1, -1) if specular_scales else range(2, -1, -1)
+        specular_range = range(max(specular_scales), min(specular_scales) - 1, -1) if specular_scales else range(4, -1, -1)
         
         self.models["decompose"] = networks.NonLambertianDecomposeDecoderV7(
             self.models["decompose_encoder"].num_ch_enc, self.opt.scales,

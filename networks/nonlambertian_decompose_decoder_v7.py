@@ -23,7 +23,7 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
         self.scales = scales
 
         self.num_ch_enc = num_ch_enc
-        self.num_ch_dec = np.array([32, 64, 64, 128, 256])
+        self.num_ch_dec = np.array([32, 32, 64, 64, 128, 256])
         
         # Store the scales for each branch
         self.albedo_scales = albedo_scales
@@ -39,10 +39,10 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
             # upconv_0
             if i == max(self.albedo_scales):
                 # Ensure we don't access num_ch_enc beyond its size
-                num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             else:
                 # Ensure we don't access num_ch_dec beyond its size
-                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_A", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
 
@@ -60,10 +60,10 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
             if i == max(self.shading_scales):
                 # For the first layer of shading, use features from the highest scale
                 # Ensure we don't access num_ch_enc beyond its size
-                num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             else:
                 # Ensure we don't access num_ch_dec beyond its size
-                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_S", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
             
@@ -82,10 +82,10 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
         for i in self.specular_scales:
             if i == max(self.specular_scales):
                 # Ensure we don't access num_ch_enc beyond its size
-                num_ch_in = self.num_ch_enc[i] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_enc[i] if len(self.num_ch_enc) > i else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             else:
                 # Ensure we don't access num_ch_dec beyond its size
-                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else (self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32)
             num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_R", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
 

@@ -109,7 +109,7 @@ class NonLambertianOptions:
                                  nargs="+",
                                  type=int,
                                  help="scales used in the specular branch",
-                                 default=[6, 5, 4, 3, 2, 1, 0])
+                                 default=[4, 3, 2, 1, 0])
 
         # OPTIMIZATION options
         self.parser.add_argument("--batch_size",
