@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
 
-class NonLambertianTrainer:
+class NonLambertianTrainerV7:
     def __init__(self, options):
         self.opt = options
         self.log_path = os.path.join(self.opt.log_dir, self.opt.model_name)
