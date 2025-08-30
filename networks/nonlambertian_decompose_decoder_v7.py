@@ -38,17 +38,20 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
         for i in self.albedo_scales:
             # upconv_0
             if i == max(self.albedo_scales):
+                # Ensure we don't access num_ch_enc beyond its size
                 num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
             else:
-                num_ch_in = self.num_ch_dec[i + 1]
-            num_ch_out = self.num_ch_dec[i]
+                # Ensure we don't access num_ch_dec beyond its size
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_A", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
 
             # upconv_1
-            num_ch_in = self.num_ch_dec[i]
+            num_ch_in = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
-            num_ch_out = self.num_ch_dec[i]
+                # Ensure we don't access num_ch_enc beyond its size
+                num_ch_in += self.num_ch_enc[i - 1] if len(self.num_ch_enc) > i - 1 else 0
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_A", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
         
         # Shading branch
@@ -56,36 +59,42 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
             # upconv_0
             if i == max(self.shading_scales):
                 # For the first layer of shading, use features from the highest scale
+                # Ensure we don't access num_ch_enc beyond its size
                 num_ch_in = self.num_ch_enc[-1] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
             else:
-                num_ch_in = self.num_ch_dec[i + 1]
-            num_ch_out = self.num_ch_dec[i]
+                # Ensure we don't access num_ch_dec beyond its size
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_S", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
             
             # upconv_1
-            num_ch_in = self.num_ch_dec[i]
+            num_ch_in = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
+                # Ensure we don't access num_ch_enc beyond its size
+                num_ch_in += self.num_ch_enc[i - 1] if len(self.num_ch_enc) > i - 1 else 0
             # Also add albedo features for cross-component interaction
             if i == 0:
                 num_ch_in += self.num_ch_dec[0]  # Add albedo features
-            num_ch_out = self.num_ch_dec[i]
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_S", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
 
         # Specular branch
         for i in self.specular_scales:
             if i == max(self.specular_scales):
+                # Ensure we don't access num_ch_enc beyond its size
                 num_ch_in = self.num_ch_enc[i] if len(self.num_ch_enc) > i else self.num_ch_dec[i]
             else:
-                num_ch_in = self.num_ch_dec[i + 1]
-            num_ch_out = self.num_ch_dec[i]
+                # Ensure we don't access num_ch_dec beyond its size
+                num_ch_in = self.num_ch_dec[i + 1] if len(self.num_ch_dec) > i + 1 else self.num_ch_dec[i]
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_R", i, 0)] = ConvBlock(num_ch_in, num_ch_out)
 
             # upconv_1
-            num_ch_in = self.num_ch_dec[i]
+            num_ch_in = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             if self.use_skips and i > 0:
-                num_ch_in += self.num_ch_enc[i - 1]
-            num_ch_out = self.num_ch_dec[i]
+                # Ensure we don't access num_ch_enc beyond its size
+                num_ch_in += self.num_ch_enc[i - 1] if len(self.num_ch_enc) > i - 1 else 0
+            num_ch_out = self.num_ch_dec[i] if len(self.num_ch_dec) > i else 32  # Default to 32 if out of bounds
             self.convs[("upconv_R", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
 
         # Output convolutions
@@ -108,10 +117,11 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
             x_A = self.convs[("upconv_A", i, 0)](x_A)
             x_A = [upsample(x_A)]
             if self.use_skips and i > 0:
-                x_A += [input_features[i - 1]]
+                # Ensure we don't access input_features beyond its size
+                x_A += [input_features[i - 1]] if len(input_features) > i - 1 else [input_features[-1]]
             x_A = torch.cat(x_A, 1)
             x_A = self.convs[("upconv_A", i, 1)](x_A)
-           
+       
         self.outputs[("decompose_A")] = self.sigmoid(self.convs[("decompose_A_conv", 0)](x_A))
         
         # Shading decoder (S) 
@@ -120,7 +130,8 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
             x_S = self.convs[("upconv_S", i, 0)](x_S)
             x_S = [upsample(x_S)]
             if self.use_skips and i > 0:
-                x_S += [input_features[i - 1]]
+                # Ensure we don't access input_features beyond its size
+                x_S += [input_features[i - 1]] if len(input_features) > i - 1 else [input_features[-1]]
             # Add albedo features at finest scale for interaction
             if i == 0:
                 x_S += [x_A]
@@ -130,12 +141,15 @@ class NonLambertianDecomposeDecoderV7(nn.Module):
         self.outputs[("decompose_S")] = self.sigmoid(self.convs[("decompose_S_conv", 0)](x_S))
         
         # Specular decoder (R)
-        x_R = input_features[max(self.specular_scales)]  # Start from highest resolution for specular
+        # Ensure we don't access input_features beyond its size
+        max_specular_scale = max(self.specular_scales)
+        x_R = input_features[max_specular_scale] if len(input_features) > max_specular_scale else input_features[-1]  # Start from highest resolution for specular
         for i in self.specular_scales:
             x_R = self.convs[("upconv_R", i, 0)](x_R)
             x_R = [upsample(x_R)]
             if self.use_skips and i > 0:
-                x_R += [input_features[i - 1]]
+                # Ensure we don't access input_features beyond its size
+                x_R += [input_features[i - 1]] if len(input_features) > i - 1 else [input_features[-1]]
             x_R = torch.cat(x_R, 1)
             x_R = self.convs[("upconv_R", i, 1)](x_R)
             
